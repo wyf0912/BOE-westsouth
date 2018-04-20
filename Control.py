@@ -9,6 +9,8 @@ class Control():
         self.output = 0
         self.__encoder_count = 0
 
+        self.angle = 50  # 舵机角度 0-100 50为中间位置
+
         self.kp = 0
         self.ki = 0
         self.kd = 0
@@ -20,11 +22,29 @@ class Control():
         self.timer.start()
 
         self.GPIO_encoder = 24
-        self.GPIO_init()
+        self.GPIO_steer = 26  # 50HZ 1-2ms
+        self.GPIO_motor1 = 28  #
+        self.GPIO_motor2 = 29
+        self.__GPIO_init()
 
-    def GPIO_init(self):
-        self.GPIO.setmode(GPIO.BCM)
-        self.GPIO.setup(self.GPIO_encoder, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        self.mode_PID = None
+
+    @property
+    def steer_val(self):
+        return 7.5 + (self.angle - 50) / 100.0 * 5
+
+    def __GPIO_init(self):
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.GPIO_encoder, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(self.GPIO_steer, GPIO.OUT)
+        GPIO.setup(self.GPIO_motor1, GPIO.OUT)
+        GPIO.setup(self.GPIO_motor2, GPIO.OUT)
+        self.steer = GPIO.PWM(self.GPIO_steer, 50)
+        self.motor1 = GPIO.PWM(self.GPIO_motor1, 10000)
+        self.motor2 = GPIO.PWM(self.GPIO_motor2, 10000)
+        self.steer.start()
+        self.motor1.start()
+        self.motor2.start()
 
     def get_speed(self):
         GPIO.derevent_detected()
@@ -32,7 +52,19 @@ class Control():
         return self.current_speed
 
     def set_speed(self, speed):
+        assert abs(speed) <= -100
         self.target_speed = speed
+        if not self.mode_PID:
+            if speed > 0:
+                self.motor1.ChangeFrequency(speed / 100 * 90)
+                self.motor2.ChangeFrequency(0)
+            else:
+                self.motor2.ChangeFrequency(abs(speed) / 100 * 90)
+                self.motor1.ChangeFrequency(0)
+
+    def set_anlge(self, angle):
+        self.angle = angle
+        self.steer.ChangeFrequency(self.steer_val)
 
     def __cal_output(self):
         self.get_speed()
@@ -42,10 +74,6 @@ class Control():
         self.output = self.error * self.kp + self.ki * self.int_ki + self.kd * (self.error - self.last_error)
         timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
         timer.start()
-        print(self.output)
-
-    def PWM(self):
-        pass
 
 
 if __name__ == '__main__':
