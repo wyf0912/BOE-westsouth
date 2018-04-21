@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 import threading
-# import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import GUI
 
 
@@ -45,6 +45,8 @@ class Control():
         if self.gui.state_str.get() == 'manual mode':
             self.target_speed = self.gui.speed_val
             self.angle = (self.gui.angle_val + 90) / 180 * 100
+            self.set_speed(self.angle)
+            self.set_anlge(self.set_speed())
         else:
             self.gui.speed_val = self.target_speed
             self.gui.angle_val = (self.angle - 50) / 5 * 9
@@ -75,15 +77,15 @@ class Control():
         self.target_speed = speed
         if not self.mode_PID:
             if speed > 0:
-                self.motor1.ChangeFrequency(speed / 100 * 90)
-                self.motor2.ChangeFrequency(0)
+                self.motor1.ChangeDutyCycle(speed / 100 * 90)
+                self.motor2.ChangeDutyCycle(0)
             else:
-                self.motor2.ChangeFrequency(abs(speed) / 100 * 90)
-                self.motor1.ChangeFrequency(0)
+                self.motor2.ChangeDutyCycle(abs(speed) / 100 * 90)
+                self.motor1.ChangeDutyCycle(0)
 
     def set_anlge(self, angle):
         self.angle = angle
-        self.steer.ChangeFrequency(self.steer_val)
+        self.steer.ChangeDutyCycle(self.steer_val)
 
     def __cal_output(self):
         self.get_speed()
