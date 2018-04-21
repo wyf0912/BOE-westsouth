@@ -1,5 +1,8 @@
+# -*- coding: UTF-8 -*-
+
 import threading
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
+import GUI
 
 
 class Control():
@@ -9,7 +12,10 @@ class Control():
         self.output = 0
         self.__encoder_count = 0
 
-        self.angle = 50  # 舵机角度 0-100 50为中间位置
+        self.gui = GUI.GUI()
+        self.gui.start()
+
+        self.angle = 50  # 0-100
 
         self.kp = 0
         self.ki = 0
@@ -18,20 +24,33 @@ class Control():
         self.error = 0
         self.last_error = 0
         self.PID_cycle = 20
-        self.timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
-        self.timer.start()
+        #self.timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
+        self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
+        #self.timer.start()
+        self.mode_detect.start()
 
         self.GPIO_encoder = 24
         self.GPIO_steer = 26  # 50HZ 1-2ms
         self.GPIO_motor1 = 28  #
         self.GPIO_motor2 = 29
-        self.__GPIO_init()
-
+        # self.__GPIO_init()
         self.mode_PID = None
 
+        print("test")
     @property
     def steer_val(self):
         return 7.5 + (self.angle - 50) / 100.0 * 5
+
+    def __mode_detect(self):
+        if self.gui.state_str.get() == 'manual mode':
+            self.target_speed = self.gui.speed_val
+            self.angle = (self.gui.angle_val + 90) / 180 * 100
+        else:
+            self.gui.speed_val = self.target_speed
+            self.gui.angle_val = (self.angle - 50) / 5 * 9
+        print(self.target_speed,self.angle)
+        self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
+        self.mode_detect.start()
 
     def __GPIO_init(self):
         GPIO.setmode(GPIO.BCM)
