@@ -35,6 +35,12 @@ class GUI(threading.Thread):
         self.state.grid(row=2, column=1)
         self.entry.grid(row=2, column=0)
         self.root.mainloop()
+        self.timer=threading.Timer(0.02,self.angle_0)
+        self.timer.start()
+    
+    def angle_0(self):
+        self.angle_0 = 0
+        self.timer.start()
 
     def trans_mode(self):
         if self.state_str.get() == 'auto mode':
@@ -49,8 +55,9 @@ class GUI(threading.Thread):
         self.entry.delete(0, 10)
         event = event.char
         if event == 'f':
-            self.speed_val = 0
+            self.speed_val = -20
             self.state_str.set('manual mode')
+
         if self.state_str.get() == 'manual mode':
             if event == 'w':
                 self.speed_val += 10
@@ -70,6 +77,10 @@ class GUI(threading.Thread):
                 self.angle_val = -90
             self.speed_str.set('速度：' + str(self.speed_val))
             self.angle_str.set('角度：' + str(self.angle_val))
+            
+        else:
+            self.speed_val=0
+            self.angle_val=0
 
     def refresh_gui(self):
         pass
