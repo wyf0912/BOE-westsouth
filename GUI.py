@@ -10,7 +10,8 @@ class GUI(threading.Thread):
     def run(self):
         self.speed_val = 0
         self.angle_val = 0
-
+        
+        self.flag = 0 # stop car
         self.timer_delay = 0.4  #舵机归中时间
         self.timer = threading.Timer(self.timer_delay, self.angle_0)
         self.timer.start()
@@ -24,8 +25,9 @@ class GUI(threading.Thread):
 
         # self.entry = tk.Entry(self.root)
         # self.entry.bind('<Key>', self.deal_key)
-        self.root.bind('<Key>', self.deal_key)
-
+        self.root.bind('<KeyPress>', self.deal_key)
+        self.root.bind('<KeyRelease>', self.release_key)
+        
         self.angle_str = tk.StringVar(self.root)
         self.speed_str = tk.StringVar(self.root)
         self.speed_str.set('速度：0')
@@ -44,16 +46,21 @@ class GUI(threading.Thread):
         self.root.mainloop()
 
 
+
     def closeWindow(self):
         self.timer.cancel()
         self.root.destroy()
 
     def angle_0(self):
+        if self.flag:
+            self.speed_val=0
+            self.flag=0
         self.angle_val = 0
         self.timer = threading.Timer(self.timer_delay, self.angle_0)
         self.timer.start()
         self.speed_str.set('速度：' + str(self.speed_val))
         self.angle_str.set('角度：' + str(self.angle_val))
+
 
     def trans_mode(self):
         if self.state_str.get() == 'auto mode':
@@ -63,17 +70,26 @@ class GUI(threading.Thread):
 
         print(self.state_str.get())
         self.root.update()
-
+    
+    def release_key(self,event):
+        print(event)
+        
     def deal_key(self, event):
         # self.entry.delete(0, 10)
+        #print(event)
         event = event.char
+        
         self.timer.cancel()
         self.timer = threading.Timer(self.timer_delay, self.angle_0)
         self.timer.start()
 
         if event == 'f':
-            self.speed_val = -20
+            if self.speed_val>0:
+                self.speed_val = -10
+            else:
+                self.speed_val = 10
             self.state_str.set('manual mode')
+            self.flag=1
 
         if self.state_str.get() == 'manual mode':
             if event == 'w':
@@ -81,9 +97,9 @@ class GUI(threading.Thread):
             if event == 's':
                 self.speed_val -= 10
             if event == 'a':
-                self.angle_val -= 10
+                self.angle_val += 20
             if event == 'd':
-                self.angle_val += 10
+                self.angle_val -= 20
             if self.speed_val < -100:
                 self.speed_val = -100
             if self.speed_val > 100:

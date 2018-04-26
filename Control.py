@@ -25,19 +25,21 @@ class Control():
         self.error = 0
         self.last_error = 0
         self.PID_cycle = 20
-        self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
-        self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
-        #self.timer.start()
-        self.mode_detect.start()
 
-        self.GPIO_encoder1 = 23
-        self.GPIO_encoder2 = 24
+
+        self.GPIO_encoder1 = 24
+        self.GPIO_encoder2 = 23
         self.GPIO_steer = 12  # 50HZ 1-2ms 12 ,18,13,19
         self.GPIO_motor1 = 20  #
         self.GPIO_motor2 = 21
         self.__GPIO_init()
         self.mode_PID = False
 
+        self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
+        self.PID_timer.start()
+        self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
+        self.mode_detect.start()
+        
         print("test")
         
     @property
@@ -72,10 +74,9 @@ class Control():
 ##        self.steer.start(self.steer_val)
 ##        self.motor1.start(0)
 ##        self.motor2.start(0)
-        self.encoder_1 = self.pi.callback(self.GPIO_encoder1, pigpio.EITHER_EDGE)
-
 
         self.pi=pigpio.pi()
+        self.encoder_1 = self.pi.callback(self.GPIO_encoder1, pigpio.EITHER_EDGE)
         self.pi.set_PWM_frequency(self.GPIO_steer,50)
         self.pi.set_PWM_frequency(self.GPIO_motor1,10000)
         self.pi.set_PWM_frequency(self.GPIO_motor2,10000)
@@ -85,7 +86,7 @@ class Control():
         self.pi.set_PWM_dutycycle(self.GPIO_motor2,0)
 
     def get_speed(self):
-        print(self.encoder_1.tally())
+        #print(self.encoder_1.tally())
         self.encoder_1.reset_tally()
         self.current_speed = 0
         return self.current_speed
@@ -114,8 +115,9 @@ class Control():
         self.int_ki += self.error
         self.output = self.error * self.kp + self.ki * self.int_ki + self.kd * (self.error - self.last_error)
         self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
-        self.Pid_timer.start()
+        self.PID_timer.start()
 
 
 if __name__ == '__main__':
     mycar = Control()
+
