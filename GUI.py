@@ -18,8 +18,9 @@ class GUI(threading.Thread):
         self.stop = tk.Button(self.root, text='Stop')
         self.trans = tk.Button(self.root, text='Trans Mode', command=self.trans_mode)
 
-        self.entry = tk.Entry(self.root)
-        self.entry.bind('<Key>', self.deal_key)
+        #self.entry = tk.Entry(self.root)
+        #self.entry.bind('<Key>', self.deal_key)
+        self.root.bind('<Key>', self.deal_key)
 
         self.angle_str = tk.StringVar(self.root)
         self.speed_str = tk.StringVar(self.root)
@@ -33,7 +34,7 @@ class GUI(threading.Thread):
         self.stop.grid(row=1, column=1, padx=40, pady=40)
         self.trans.grid(row=1, column=0, padx=40, pady=40)
         self.state.grid(row=2, column=1)
-        self.entry.grid(row=2, column=0)
+        #self.entry.grid(row=2, column=0)
         self.root.mainloop()
 
     def trans_mode(self):
@@ -46,7 +47,7 @@ class GUI(threading.Thread):
         self.root.update()
 
     def deal_key(self, event):
-        self.entry.delete(0, 10)
+        #self.entry.delete(0, 10)
         event = event.char
         if event == 'f':
             self.speed_val = 0
@@ -80,7 +81,7 @@ if __name__ == '__main__':
     # t1.start()
     gui = GUI()
     gui.start()
-    #gui.refresh_gui()
-    #t1 = threading.Thread(target=gui.refresh_gui)
-   # t1.start()
+    # gui.refresh_gui()
+    # t1 = threading.Thread(target=gui.refresh_gui)
+    # t1.start()
     print("test")
