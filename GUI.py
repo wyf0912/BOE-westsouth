@@ -11,6 +11,10 @@ class GUI(threading.Thread):
         self.speed_val = 0
         self.angle_val = 0
 
+        self.timer_delay = 0.4  #舵机归中时间
+        self.timer = threading.Timer(self.timer_delay, self.angle_0)
+        self.timer.start()
+
         self.root = tk.Tk()
         self.state_str = tk.StringVar(self.root)
         self.state_str.set('auto mode')
@@ -18,8 +22,8 @@ class GUI(threading.Thread):
         self.stop = tk.Button(self.root, text='Stop')
         self.trans = tk.Button(self.root, text='Trans Mode', command=self.trans_mode)
 
-        #self.entry = tk.Entry(self.root)
-        #self.entry.bind('<Key>', self.deal_key)
+        # self.entry = tk.Entry(self.root)
+        # self.entry.bind('<Key>', self.deal_key)
         self.root.bind('<Key>', self.deal_key)
 
         self.angle_str = tk.StringVar(self.root)
@@ -34,14 +38,22 @@ class GUI(threading.Thread):
         self.stop.grid(row=1, column=1, padx=40, pady=40)
         self.trans.grid(row=1, column=0, padx=40, pady=40)
         self.state.grid(row=2, column=1)
-        #self.entry.grid(row=2, column=0)
+        # self.entry.grid(row=2, column=0)
+
+        self.root.protocol('WM_DELETE_WINDOW', self.closeWindow)
         self.root.mainloop()
-        self.timer=threading.Timer(0.02,self.angle_0)
-        self.timer.start()
-    
+
+
+    def closeWindow(self):
+        self.timer.cancel()
+        self.root.destroy()
+
     def angle_0(self):
-        self.angle_0 = 0
+        self.angle_val = 0
+        self.timer = threading.Timer(self.timer_delay, self.angle_0)
         self.timer.start()
+        self.speed_str.set('速度：' + str(self.speed_val))
+        self.angle_str.set('角度：' + str(self.angle_val))
 
     def trans_mode(self):
         if self.state_str.get() == 'auto mode':
@@ -53,8 +65,12 @@ class GUI(threading.Thread):
         self.root.update()
 
     def deal_key(self, event):
-        #self.entry.delete(0, 10)
+        # self.entry.delete(0, 10)
         event = event.char
+        self.timer.cancel()
+        self.timer = threading.Timer(self.timer_delay, self.angle_0)
+        self.timer.start()
+
         if event == 'f':
             self.speed_val = -20
             self.state_str.set('manual mode')
@@ -78,10 +94,11 @@ class GUI(threading.Thread):
                 self.angle_val = -90
             self.speed_str.set('速度：' + str(self.speed_val))
             self.angle_str.set('角度：' + str(self.angle_val))
-            
+
         else:
-            self.speed_val=0
-            self.angle_val=0
+            self.speed_val = 0
+            self.angle_val = 0
+
 
     def refresh_gui(self):
         pass
