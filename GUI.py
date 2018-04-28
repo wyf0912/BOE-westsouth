@@ -11,7 +11,7 @@ class GUI(threading.Thread):
         self.speed_val = 0
         self.angle_val = 0
 
-        self.timer_delay = 0.4  #舵机归中时间
+        self.timer_delay = 0.4  # 舵机归中时间
         self.timer = threading.Timer(self.timer_delay, self.angle_0)
         self.timer.start()
 
@@ -38,11 +38,15 @@ class GUI(threading.Thread):
         self.stop.grid(row=1, column=1, padx=40, pady=40)
         self.trans.grid(row=1, column=0, padx=40, pady=40)
         self.state.grid(row=2, column=1)
-        # self.entry.grid(row=2, column=0)
+
+        self.menubar = tk.Menu(self.root)
+        self.menubar.add_command(label="Args", command=self.argument_table)
+        self.root.config(menu=self.menubar)
+
+        self.args_refresh_flag = 0
 
         self.root.protocol('WM_DELETE_WINDOW', self.closeWindow)
         self.root.mainloop()
-
 
     def closeWindow(self):
         self.timer.cancel()
@@ -99,16 +103,44 @@ class GUI(threading.Thread):
             self.speed_val = 0
             self.angle_val = 0
 
+    def argument_table(self):
+        self.table = tk.Toplevel()
+        file_object = open('argument.txt')
+        text = file_object.read()
 
-    def refresh_gui(self):
-        pass
+        self.argument_dict = dict(eval(text))
+        print(self.argument_dict)
+        self.item = {}
+        i = 0
+        for key in self.argument_dict.keys():
+            self.item[key] = tk.Label(self.table, text=key)
+            self.item[key].grid(row=i, column=0)
+            self.item[key + 'str'] = tk.StringVar()
+            self.item[key + 'str'].set(str(self.argument_dict[key]))
+            print(str(self.argument_dict[key]))
+            self.item[key + 'val'] = tk.Entry(self.table, textvariable=self.item[key + 'str'])
+            self.item[key + 'val'].grid(row=i, column=1)
+
+            i = i + 1
+
+        save = tk.Button(self.table, text='Save', command=self.save_args)
+        save.grid(row=i + 1, column=1)
+        file_object.close()
+        self.table.mainloop()
+
+    def save_args(self):
+        for key in self.argument_dict.keys():
+            self.argument_dict[key] = self.item[key + 'val'].get()
+        with open('argument.txt', 'w') as file:
+            file.write(str(self.argument_dict))
+        self.args_refresh_flag = 1
 
 
 if __name__ == '__main__':
     # t1 = threading.Thread(target=GUI)
     # t1.start()
     gui = GUI()
-    gui.start()
+    gui.run()
     # gui.refresh_gui()
     # t1 = threading.Thread(target=gui.refresh_gui)
     # t1.start()
