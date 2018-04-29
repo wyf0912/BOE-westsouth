@@ -4,12 +4,21 @@ import threading
 import RPi.GPIO as GPIO
 import pigpio
 import GUI
+import sys
 
-
+class Unbuffered(object):
+    def __init__(self,stream):
+        self.stream = stream
+    def write(self,data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self,attr):
+        return getattr(self.stream,attr)
+    
+#sys.stdout = Unbuffered(sys.stdout)
 class Control():
     def __init__(self):
-        self.read_argument()
-
+        
         self.current_speed = 0
         self.target_speed = 0
         self.output = 0
@@ -17,26 +26,33 @@ class Control():
 
         self.gui = GUI.GUI()
         self.gui.start()
+        
+        self.args_dict = {}
+        self.read_argument()
 
         self.angle = 50  # 0-100
-
-        self.args_dict = {}
+        self.print_count=0
         self.int_ki = 0
         self.error = 0
         self.last_error = 0
         self.PID_cycle = 20
+        self.count=0
 
-        self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
-        self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
-        # self.timer.start()
-        self.mode_detect.start()
-
+            
         self.GPIO_encoder1 = 24
         self.GPIO_encoder2 = 23
         self.GPIO_steer = 12  # 50HZ 1-2ms 12 ,18,13,19
         self.GPIO_motor1 = 20  #
         self.GPIO_motor2 = 21
         self.__GPIO_init()
+                
+        self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
+        self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
+        # self.timer.start()
+        self.mode_detect.start()
+
+
+
         self.mode_PID = False
 
         self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
@@ -47,6 +63,7 @@ class Control():
         print("test")
 
     def read_argument(self):
+        self.gui.save_args()
         self.args_dict['kp'] = self.gui.argument_dict['kp']
         self.args_dict['ki'] = self.gui.argument_dict['ki']
         self.args_dict['kd'] = self.gui.argument_dict['kd']
@@ -76,7 +93,8 @@ class Control():
     def __GPIO_init(self):
 
         self.pi=pigpio.pi()
-        self.encoder_1 = self.pi.callback(self.GPIO_encoder1, pigpio.EITHER_EDGE)
+        self.encoder_1 = self.pi.callback(self.GPIO_encoder1, pigpio.RISING_EDGE,self.encouder_count)
+        self.encoder_2 = self.pi.set_mode(self.GPIO_encoder2, pigpio.INPUT)
         self.pi.set_PWM_frequency(self.GPIO_steer,50)
         self.pi.set_PWM_frequency(self.GPIO_motor1,10000)
         self.pi.set_PWM_frequency(self.GPIO_motor2,10000)
@@ -85,11 +103,20 @@ class Control():
         self.pi.set_PWM_dutycycle(self.GPIO_motor1,0)
         self.pi.set_PWM_dutycycle(self.GPIO_motor2,0)
 
-
+    def encouder_count(self,gpio,level,tick):
+        #if self.pi.read(self.GPIO_encoder2):
+        #    self.count+=1
+        #else:
+        #    self.count-=1
+        self.count+=1   
+    
     def get_speed(self):
-        #print(self.encoder_1.tally())
-        self.encoder_1.reset_tally()
-        self.current_speed = 0
+        
+        self.current_speed=self.count
+        self.count=0
+        self.print_count+=1
+        if self.print_count%20==0:
+            print(self.current_speed)
         return self.current_speed
 
     def set_speed(self, speed):

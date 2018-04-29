@@ -8,6 +8,7 @@ class GUI(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
+        self.argument_dict={}
         self.speed_val = 0
         self.angle_val = 0
         
@@ -26,7 +27,7 @@ class GUI(threading.Thread):
         # self.entry = tk.Entry(self.root)
         # self.entry.bind('<Key>', self.deal_key)
         self.root.bind('<KeyPress>', self.deal_key)
-        self.root.bind('<KeyRelease>', self.release_key)
+        #self.root.bind('<KeyRelease>', self.release_key)
         
         self.angle_str = tk.StringVar(self.root)
         self.speed_str = tk.StringVar(self.root)
@@ -46,6 +47,7 @@ class GUI(threading.Thread):
         self.root.config(menu=self.menubar)
 
         self.args_refresh_flag = 0
+        
 
         self.root.protocol('WM_DELETE_WINDOW', self.closeWindow)
         self.root.mainloop()
@@ -75,7 +77,8 @@ class GUI(threading.Thread):
         self.root.update()
     
     def release_key(self,event):
-        print(event)
+        #print(event)
+        pass
         
     def deal_key(self, event):
         # self.entry.delete(0, 10)
@@ -124,7 +127,7 @@ class GUI(threading.Thread):
         text = file_object.read()
 
         self.argument_dict = dict(eval(text))
-        print(self.argument_dict)
+        #print(self.argument_dict)
         self.item = {}
         i = 0
         for key in self.argument_dict.keys():
@@ -144,10 +147,15 @@ class GUI(threading.Thread):
         self.table.mainloop()
 
     def save_args(self):
-        for key in self.argument_dict.keys():
-            self.argument_dict[key] = self.item[key + 'val'].get()
-        with open('argument.txt', 'w') as file:
-            file.write(str(self.argument_dict))
+        if self.argument_dict=={}:
+            with open('argument.txt', 'r') as file_object:
+                text = file_object.read()
+                self.argument_dict = dict(eval(text))
+        else:
+            for key in self.argument_dict.keys():
+                self.argument_dict[key] = self.item[key + 'val'].get()
+            with open('argument.txt', 'w') as file:
+                file.write(str(self.argument_dict))
         self.args_refresh_flag = 1
 
 
