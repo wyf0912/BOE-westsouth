@@ -5,6 +5,7 @@ import RPi.GPIO as GPIO
 import pigpio
 import GUI
 import sys
+import re
 
 
 class Unbuffered(object):
@@ -54,7 +55,7 @@ class Control():
         # self.timer.start()
         self.mode_detect.start()
 
-        self.mode_PID = False
+        self.mode_PID = True
 
         self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
         self.PID_timer.start()
@@ -65,10 +66,10 @@ class Control():
 
     def read_argument(self):
         self.gui.save_args()
-        self.args_dict['kp'] = self.gui.argument_dict['kp']
-        self.args_dict['ki'] = self.gui.argument_dict['ki']
-        self.args_dict['kd'] = self.gui.argument_dict['kd']
-        self.args_dict['servo_finetuning'] = self.gui.argument_dict['servo_finetuning']  # defaut 7.5
+        self.args_dict['kp'] = eval(self.gui.argument_dict['kp'])
+        self.args_dict['ki'] = eval(self.gui.argument_dict['ki'])
+        self.args_dict['kd'] = eval(self.gui.argument_dict['kd'])
+        self.args_dict['servo_finetuning'] = eval(self.gui.argument_dict['servo_finetuning'])  # defaut 7.5
 
     @property
     def steer_val(self):
@@ -120,21 +121,24 @@ class Control():
         flag, message = self.pi.bb_serial_read(18)
         #print(message)
         try:
-            data=message.split()
-            if data:
-                self.current_speed=eval(data[-1].decode('utf-8'))
+            data=message.decode('utf-8')
+            #print(data)
+            result=re.findall('A.*?B',data)
+            print(result)
+            if result:
+                self.current_speed=eval(result[-1][1:-1])
             #print(data)
         except:
             pass
         self.print_count += 1
         if self.print_count % 4 == 0:
-           print(self.current_speed)
-           pass
+           print(self.current_speed/100)
+
         return self.current_speed
 
     def set_speed(self, speed):
         assert abs(speed) <= 100
-        self.target_speed = speed
+        self.target_speed = speed*100
         if not self.mode_PID:
             if speed > 0:
                 self.pi.set_PWM_dutycycle(self.GPIO_motor1, int(speed * 255.0 / 100.0 * 0.9))
@@ -143,7 +147,16 @@ class Control():
             else:
                 self.pi.set_PWM_dutycycle(self.GPIO_motor1, 0)
                 self.pi.set_PWM_dutycycle(self.GPIO_motor2, int(-speed * 255.0 / 100.0 * 0.9))
+        else:
+            print(self.output)
+            if self.output > 0:
+                self.pi.set_PWM_dutycycle(self.GPIO_motor1, int(self.output * 255.0 / 100.0 * 0.9))
+                self.pi.set_PWM_dutycycle(self.GPIO_motor2, 0)
 
+            else:
+                self.pi.set_PWM_dutycycle(self.GPIO_motor1, 0)
+                self.pi.set_PWM_dutycycle(self.GPIO_motor2, int(-self.output * 255.0 / 100.0))
+                                                                
     def set_anlge(self, angle):
         self.angle = angle
         self.pi.set_PWM_dutycycle(self.GPIO_steer, self.steer_val * 100)

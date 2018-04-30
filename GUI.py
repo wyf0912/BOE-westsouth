@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import tkinter as tk
 import threading
-
+import pigpio
 
 class GUI(threading.Thread):
     def __init__(self):
@@ -27,6 +27,7 @@ class GUI(threading.Thread):
         # self.entry = tk.Entry(self.root)
         # self.entry.bind('<Key>', self.deal_key)
         self.root.bind('<KeyPress>', self.deal_key)
+        self.root.protocol('WM_DELETE_WINDOW',self.closeWindow)
         #self.root.bind('<KeyRelease>', self.release_key)
         
         self.angle_str = tk.StringVar(self.root)
@@ -53,8 +54,11 @@ class GUI(threading.Thread):
         self.root.mainloop()
 
     def closeWindow(self):
+        print('close window')
         self.timer.cancel()
         self.root.destroy()
+        self.pi = pigpio.pi()
+        self.pi.bb_serial_read_close(18)
 
     def angle_0(self):
         if self.flag:
