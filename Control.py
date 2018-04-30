@@ -117,12 +117,19 @@ class Control():
 
     def get_speed(self):
         #self.current_speed = self.count
-        flag, message = self.pi.serial_read(self.com, 100)
-        if flag:
-            self.current_speed=eval(message.split()[-1])
+        flag, message = self.pi.bb_serial_read(18)
+        #print(message)
+        try:
+            data=message.split()
+            if data:
+                self.current_speed=eval(data[-1].decode('utf-8'))
+            #print(data)
+        except:
+            pass
         self.print_count += 1
-        if self.print_count % 20 == 0:
-            print(self.current_speed)
+        if self.print_count % 4 == 0:
+           print(self.current_speed)
+           pass
         return self.current_speed
 
     def set_speed(self, speed):
