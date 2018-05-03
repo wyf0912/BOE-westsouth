@@ -1,5 +1,8 @@
 # -*- coding: UTF-8 -*-
-import tkinter as tk
+try:
+    import tkinter as tk
+except:
+    import Tkinter as tk
 import threading
 import pigpio
 
@@ -96,12 +99,12 @@ class GUI(threading.Thread):
         self.timer.start()
 
         if event == 'f':
-            if self.speed_val>0:
-                self.speed_val = -10
-            else:
-                self.speed_val = 10
+            #if self.speed_val>0:
+            self.speed_val = 0
+            #else:
+            #    self.speed_val = 0
             self.state_str.set('manual mode')
-            self.flag=1
+            #self.flag=1
 
         if self.state_str.get() == 'manual mode':
             if event == 'w':

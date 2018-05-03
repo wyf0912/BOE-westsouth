@@ -4,7 +4,6 @@ import threading
 import RPi.GPIO as GPIO
 import pigpio
 import GUI
-import CV
 import sys
 import re
 
@@ -59,11 +58,6 @@ class Control():
         self.mode_detect.start()
 
         self.mode_PID = True
-        self.mode_CV = False
-        if self.mode_CV:
-            self.cv_result = []
-            self.CV = CV(self.gui)
-            self.CV.run(self.cv_result)
 
         self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
         self.PID_timer.start()
@@ -221,7 +215,6 @@ class Control():
                 self.error - self.last_error)
         self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
         self.PID_timer.start()
-
 
 
 if __name__ == '__main__':

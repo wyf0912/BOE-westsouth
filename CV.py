@@ -107,3 +107,8 @@ class CV:
                 stream.truncate(0)
 
                 cv2.waitKey(1)
+
+                
+if __name__ == '__main__':
+    cv=CV()
+    cv.find_light()
