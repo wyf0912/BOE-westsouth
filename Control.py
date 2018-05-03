@@ -40,11 +40,11 @@ class FindLight:
         if not light_find:
             speed, angle = self.not_found()
         else:
-            if cy > quq:
-                speed = quq
+            if cy > 40:
+                speed = 20
 
-            elif cy<=quq:
-                speed = quq
+            elif cy <= 40: # and cy>10
+                speed = 5
                 self.success_flag = 1
 
         return speed,angle
@@ -52,14 +52,14 @@ class FindLight:
 
     def not_found(self):
         if self.success_flag == 1:
-            speed = -quq
+            speed = -20
             angle = 0 # 或 100
             self.count += 1
             if self.count>50:
                 self.count = 0
                 self.success_flag = 0
         else:
-            speed = quq
+            speed = 20
             angle = 0 #或100
 
         return speed, angle
