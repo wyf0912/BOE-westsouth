@@ -14,6 +14,7 @@ class GUI(threading.Thread):
         self.argument_dict={}
         self.speed_val = 0
         self.angle_val = 0
+        self.imshow_flag = False
         
         self.flag = 0 # stop car
         self.timer_delay = 0.4  #舵机归中时间
@@ -22,11 +23,11 @@ class GUI(threading.Thread):
 
         self.root = tk.Tk()
         self.state_str = tk.StringVar(self.root)
-        self.state_str.set('auto mode')
+        self.state_str.set('manual mode')
         self.state = tk.Label(self.root, textvariable=self.state_str)
-        self.stop = tk.Button(self.root, text='Stop')
+        self.imshow = tk.Button(self.root, text='imshow',command=self.trans_imshow)
         self.trans = tk.Button(self.root, text='Trans Mode', command=self.trans_mode)
-
+		
         # self.entry = tk.Entry(self.root)
         # self.entry.bind('<Key>', self.deal_key)
         self.root.bind('<KeyPress>', self.deal_key)
@@ -34,17 +35,23 @@ class GUI(threading.Thread):
         #self.root.bind('<KeyRelease>', self.release_key)
         
         self.angle_str = tk.StringVar(self.root)
+        self.current_speed_str = tk.StringVar(self.root)
         self.speed_str = tk.StringVar(self.root)
+
         self.speed_str.set('速度：0')
         self.angle_str.set('角度：0')
+        self.current_speed_str.set('Current Speed：0')
+        
         self.speed = tk.Label(self.root, textvariable=self.speed_str)
         self.angle = tk.Label(self.root, textvariable=self.angle_str)
-
+        self.current_speed = tk.Label(self.root, textvariable=self.current_speed_str)
+		
         self.angle.grid(row=0, column=1, padx=40, pady=40)
         self.speed.grid(row=0, column=0, padx=40, pady=40)
-        self.stop.grid(row=1, column=1, padx=40, pady=40)
+        self.imshow.grid(row=1, column=1, padx=40, pady=40)
         self.trans.grid(row=1, column=0, padx=40, pady=40)
         self.state.grid(row=2, column=1)
+        self.current_speed.grid(row=2,column=0)
 
         self.menubar = tk.Menu(self.root)
         self.menubar.add_command(label="Args", command=self.argument_table)
@@ -84,6 +91,12 @@ class GUI(threading.Thread):
 
         print(self.state_str.get())
         self.root.update()
+    
+    def trans_imshow(self):
+		if self.imshow_flag:
+			self.imshow_flag=False
+		else:
+			self.imshow_flag=True
     
     def release_key(self,event):
         #print(event)
@@ -155,6 +168,9 @@ class GUI(threading.Thread):
         file_object.close()
         self.table.mainloop()
 
+    def updata_speed(self,speed):
+		self.current_speed_str.set('Current Speed：'+str(speed))
+	
     def save_args(self):
         if self.argument_dict=={}:
             with open('argument.txt', 'r') as file_object:
@@ -166,6 +182,7 @@ class GUI(threading.Thread):
             with open('argument.txt', 'w') as file:
                 file.write(str(self.argument_dict))
         self.args_refresh_flag = 1
+	
 
 
 if __name__ == '__main__':

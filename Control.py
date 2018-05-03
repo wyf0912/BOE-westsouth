@@ -32,6 +32,7 @@ class Control():
         self.max_val=100
 
         self.gui = GUI.GUI()
+
         self.gui.start()
 
         self.args_dict = {}
@@ -54,21 +55,19 @@ class Control():
         self.__GPIO_init()
 
         self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
-        self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
+        self.mode_detect = threading.Timer(self.PID_cycle / 100.0, self.__mode_detect)
         # self.timer.start()
         self.mode_detect.start()
+        self.PID_timer.start()
 
         self.mode_PID = True
         self.mode_CV = False
         if self.mode_CV:
             self.cv_result = []
-            self.CV = CV(self.gui)
-            self.CV.run(self.cv_result)
+            self.cv = CV.CV(self.gui)
+            self.cv.run(self.cv_result)
 
-        self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
-        self.PID_timer.start()
-        self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
-        self.mode_detect.start()
+        
         
         self.clear_i_flag = 1 #use to break
 
@@ -76,6 +75,7 @@ class Control():
 
     def read_argument(self):
         self.gui.save_args()
+        print('test')
         self.args_dict['kp'] = eval(self.gui.argument_dict['kp'])
         self.args_dict['ki'] = eval(self.gui.argument_dict['ki'])
         self.args_dict['kd'] = eval(self.gui.argument_dict['kd'])
@@ -98,7 +98,8 @@ class Control():
         if self.gui.args_refresh_flag:
             self.read_argument()
             self.gui.args_refresh_flag = 0
-
+		
+        self.gui.updata_speed(self.current_speed/400.0)
         self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
         self.mode_detect.start()
 
@@ -141,7 +142,7 @@ class Control():
                 check_1=result=re.findall('C.*?D',data)
                 check_2=result_check=re.findall('D.*?E',data)
                 if check_1[-1][1:-1] != check_2[-1][1:-1]:
-                    print('trans error')
+                    self.gui.updata_speed('trans error')
                 elif check_1:
                     self.current_speed=-eval(check_1[-1][1:-1])
             elif result:
@@ -150,9 +151,12 @@ class Control():
         except:
             pass
         self.print_count += 1
-        if self.print_count % 4 == 0:
-           print('current speed:',self.current_speed/400.0)
+        #if self.print_count % 4 == 0:
+        #   print('current speed:',self.current_speed/400.0)
+        #self.gui.save_args()
 
+        
+		
         return self.current_speed
 
     def set_speed(self, speed):

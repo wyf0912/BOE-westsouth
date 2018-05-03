@@ -9,9 +9,10 @@ import numpy as np
 import picamera
 import threading
 import sys
+import GUI
 
 
-class CV:
+class CV(threading.Thread):
     def __init__(self, gui):
         self.fps = 0
         self.lower_red = np.array([5, 120, 50])
@@ -100,15 +101,18 @@ class CV:
                 # ser.write('A100,100,1FF ')
                 # print(str)
 
-                cv2.imshow('Mask', mask)
-                # cv2.imwrite('test_1.jpg',src);
-                cv2.imshow('Image', src)
-                fps = fps + 1
+                if self.gui.imshow_flag:
+					cv2.imshow('Mask', mask)
+					# cv2.imwrite('test_1.jpg',src);
+					cv2.imshow('Image', src)
+
+                self.fps = self.fps + 1
                 stream.truncate(0)
 
                 cv2.waitKey(1)
 
                 
 if __name__ == '__main__':
-    cv=CV()
-    cv.find_light()
+    gui=GUI.GUI()
+    cv=CV(gui)
+    cv.run([])
