@@ -54,3 +54,7 @@ class CV:
                 cX = int(M["m10"] / (M["m00"] + 1))
                 cY = int(M["m01"] / (M["m00"] + 1))
                 print[cX, cY]
+                
+if __name__ == '__main__':
+    cv=CV()
+    cv.find_light()

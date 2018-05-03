@@ -28,7 +28,7 @@ class Control():
         self.target_speed = 0
         self.output = 0
         self.__encoder_count = 0
-        self.max_val=60
+        self.max_val=100
 
         self.gui = GUI.GUI()
         self.gui.start()
@@ -41,8 +41,9 @@ class Control():
         self.int_ki = 0
         self.error = 0
         self.last_error = 0
-        self.PID_cycle = 20
+        self.PID_cycle = 10
         self.count = 0
+        self.__flag_i=1
 
         self.GPIO_encoder1 = 24
         self.GPIO_encoder2 = 23
@@ -62,6 +63,8 @@ class Control():
         self.PID_timer.start()
         self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
         self.mode_detect.start()
+        
+        self.clear_i_flag = 1 #use to break
 
         print("test")
 
@@ -79,7 +82,7 @@ class Control():
     def __mode_detect(self):
         if self.gui.state_str.get() == 'manual mode':
             self.target_speed = self.gui.speed_val
-            self.angle = (self.gui.angle_val + 90) / 180 * 100
+            self.angle = (self.gui.angle_val + 90) / 180.0 * 100
             self.set_speed(self.target_speed)
             self.set_anlge(self.angle)
         else:
@@ -126,24 +129,35 @@ class Control():
             #print(data)
             result=re.findall('A.*?B',data)
             result_check=re.findall('B.*?C',data)
+
             #print(result,result_check)
             if result[-1][1:-1] != result_check[-1][1:-1]:
-                print('trans error')
+                check_1=result=re.findall('C.*?D',data)
+                check_2=result_check=re.findall('D.*?E',data)
+                if check_1[-1][1:-1] != check_2[-1][1:-1]:
+                    print('trans error')
+                elif check_1:
+                    self.current_speed=-eval(check_1[-1][1:-1])
             elif result:
-                self.current_speed=eval(result[-1][1:-1])
+                self.current_speed=-eval(result[-1][1:-1])
             #print(data)
         except:
             pass
         self.print_count += 1
         if self.print_count % 4 == 0:
-           print('current speed:',self.current_speed/100)
-        
-        self.current_speed *= -1
+           print('current speed:',self.current_speed/400.0)
+
         return self.current_speed
 
     def set_speed(self, speed):
         assert abs(speed) <= 100
-        self.target_speed = speed*100
+        self.target_speed = speed*400
+        if speed==0:
+            if self.__flag_i:
+                self.__flag_i=0
+                self.int_ki=0
+        else:
+            self.__flag_i=1
         #self.int_ki=0
         if not self.mode_PID:
             if speed > 0:
@@ -156,40 +170,48 @@ class Control():
         else:
             #print(self.output)
 
-            self.output_copy=abs(self.output)
+            self.output_copy=self.output
             if self.output_copy>self.max_val:
                 self.output_copy=self.max_val
-            if self.output_copy<0:
-                self.output_copy=0
+            if self.output_copy<-self.max_val:
+                self.output_copy=-self.max_val
             val = int(self.output_copy * 255.0 / 100.0 * 0.9)
             #print('set val:',val)
-            if speed > 0:
+            if val > 0:
                 self.pi.set_PWM_dutycycle(self.GPIO_motor1, val)
                 self.pi.set_PWM_dutycycle(self.GPIO_motor2, 0)
-            elif speed == 0 and self.current_speed<300:
-                self.pi.set_PWM_dutycycle(self.GPIO_motor1, 0)
-                self.pi.set_PWM_dutycycle(self.GPIO_motor2, 0)
+
             else:
                 self.pi.set_PWM_dutycycle(self.GPIO_motor1, 0)
-                self.pi.set_PWM_dutycycle(self.GPIO_motor2, val)
-            
+                self.pi.set_PWM_dutycycle(self.GPIO_motor2, -val)
+                                                                
     def set_anlge(self, angle):
         self.angle = angle
         self.pi.set_PWM_dutycycle(self.GPIO_steer, self.steer_val * 100)
 
     ##        self.steer.ChangeDutyCycle(self.steer_val)
-
+    
+    def judge_i(self):
+        if self.target_speed>0:
+            self.clear_i_flag=1
+        elif self.target_speed<0:
+            self.clear_i_flag=-1
+        elif self.target_speed==0:
+            if self.current_speed*self.target_speed<=0:
+                self.int_ki_val=0
+        
     def __cal_output(self):
         self.get_speed()
         self.last_error = self.error
-        self.error = abs(self.target_speed) - abs(self.current_speed)
+        self.error = self.target_speed - self.current_speed
         self.int_ki += self.error
         self.int_ki_val = self.args_dict['ki'] * self.int_ki
-        if self.int_ki_val > self.max_val*0.5:
-            self.int_ki_val = self.max_val*0.5
-        if self.int_ki_val < -self.max_val*0.5:
-            self.int_ki_val = -self.max_val*0.5
-        self.output = 10+self.error * self.args_dict['kp'] + self.int_ki_val + self.args_dict['kd'] * (
+        if self.int_ki_val > self.max_val*0.4:
+            self.int_ki_val = self.max_val*0.4
+        if self.int_ki_val < -self.max_val*0.4:
+            self.int_ki_val = -self.max_val*0.4
+        self.judge_i()
+        self.output = self.error * self.args_dict['kp'] + self.int_ki_val + self.args_dict['kd'] * (
                 self.error - self.last_error)
         self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
         self.PID_timer.start()
