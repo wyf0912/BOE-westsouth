@@ -53,6 +53,8 @@ class GUI(threading.Thread):
         self.root.protocol('WM_DELETE_WINDOW', self.closeWindow)
         self.root.mainloop()
 
+
+
     def closeWindow(self):
         print('close window')
         self.timer.cancel()

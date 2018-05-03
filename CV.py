@@ -4,53 +4,106 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 import time
 import cv2
+import imutils
 import numpy as np
-
-
-# -*- coding: utf-8 -*-
-##import os #for os.system("command")
-# initialize the camera and grab a reference to the raw camera capture  
-# s
+import picamera
+import threading
+import sys
 
 
 class CV:
-    def __init__(self):
-        self.camera = PiCamera()
-        self.camera.resolution = (208, 160)
-        self.camera.framerate = 50
-        self.rawCapture = PiRGBArray(self.camera, size=(208, 160))
-        self.redLower = np.array([170, 100, 100])
-        self.redUpper = np.array([179, 255, 255])
+    def __init__(self, gui):
+        self.fps = 0
+        self.lower_red = np.array([5, 120, 50])
+        self.upper_red = np.array([20, 255, 255])
 
-        # allow the camera to warmup
-        time.sleep(2)
+        self.lower_red_1 = np.array([170, 100, 100])
+        self.upper_red_1 = np.array([180, 255, 255])
+        self.flagLightFinded = 0
+        self.cx = 128
+        self.cy = 128
+        self.gui = gui
 
-        # capture frames from the camera
+    def showfps(self):
+        print("fps:", self.fps)
+        self.fps = 0
+        self.timer = threading.Timer(1, self.showfps)
+        self.timer.start()
+        if self.gui.args_refresh_flag:  # 感觉有bug 会被另一个程序清掉flag
+            self.read_argument()
+            self.gui.args_refresh_flag = 0
 
-    def find_light(self):
-        for self.frame in self.camera.capture_continuous(self.rawCapture, format="bgr", use_video_port=True):
+    def read_argument(self):
+        self.gui.save_args()
+        self.args_dict['lower_red'] = np.array(eval(self.gui.argument_dict['lower_red']))
+        self.args_dict['upper_red'] = np.array(eval(self.gui.argument_dict['upper_red']))
+        self.args_dict['lower_red_1'] = np.array(eval(self.gui.argument_dict['lower_red_1']))
+        self.args_dict['upper_red_1 '] = np.array(eval(self.gui.argument_dict['upper_red_1']))
 
-            # grab the raw NumPy array representing the image, then initialize the timestamp
-            # and occupied/unoccupied text
+    def run(self, result):
+        '''输入一个参数result传递结果（cx, cy, flagLightFinded，cnt）,cnt=(cnt++)%1000，用cnt来判断结果是否有更新'''
+        with picamera.PiCamera() as camera:
+            camera.resolution = (240, 160)
+            camera.framerate = 30
+            camera.iso = 400
+            camera.awb_mode = 'off'
+            camera.awb_gains = 1.0
+            camera.shutter_speed = 2000
+            # camera.start_recording('test.h264')
+            stream = PiRGBArray(camera, size=(240, 160))
+            timer = threading.Timer(1, self.showfps)
+            timer.start()
+            inf = 666666666
+            cnt = 0
+            for frame in camera.capture_continuous(stream, format="bgr", use_video_port=True):
 
-            imageC = self.frame.array
+                src = frame.array
+                # cv2.imshow('Capture',src)
+                # cv2.imwrite('test.jpg',src)
+                hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
+                # grayscaled = cv2.cvtColor(src,cv2.COLOR_BGR2GRAY)
+                mask = cv2.inRange(hsv, self.lower_red, self.upper_red)
+                # mask_2 = cv2.inRange(hsv, lower_red_1, upper_red_1)
+                # mask = cv2.bitwise_or(mask_1,mask_2)
+                # blur = cv2.GaussianBlur(imageG,(5,5),0)
+                # retval,fixed=cv2.threshold(imageG,150,255,cv2.THRESH_BINARY)
+                kernel = np.ones((15, 15), np.uint8)
+                # mask = cv2.erode(mask,kernel)
+                mask = cv2.dilate(mask, kernel, 1)
 
-            ##imageC = cv2.imread("D:\\b.jpg")
-            self.hsv = cv2.cvtColor(imageC, cv2.COLOR_BGR2HSV)
+                # Find the Middle of the Light Blur
+                cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cnts = cnts[0] if imutils.is_cv2() else cnts[1]
+                distance = [None] * len(cnts)
+                i = 0
+                for c in cnts:
+                    M = cv2.moments(c)
+                    cX = int(M["m10"] / (M["m00"] + 1))
+                    cY = int(M["m01"] / (M["m00"] + 1))
 
-            self.mask = cv2.inRange(self.hsv, self.redLower, self.redUpper)
+                    if [cX, cY] != [0, 0]:
+                        distance[i] = (cX - 104) * (cX - 104) + (160 - cY) * (160 - cY)
+                    else:
+                        distance[i] = inf
+                        i = i + 1
+                flagLightFinded = 0
+                if distance != []:
+                    M = cv2.moments(cnts[distance.index(min(distance))])
+                    cx = round((M["m10"] / (M["m00"] + 1)) / 240.0 * 128)
+                    cy = round((M["m01"] / (M["m00"] + 1)) / 160.0 * 128)
+                    flagLightFinded = 1
 
-            self.res = cv2.bitwise_and(imageC, imageC, mask=self.mask)
+                    cv2.rectangle(src, (cX - 40, cY - 30), (cX + 40, cY + 30), (0, 255, 0), 4)
+                # str = "A%d,%d,%dFF " % (cx, cy, flagLightFinded);
+                result = [cx, cy, flagLightFinded, cnt]
+                cnt = (cnt + 1) % 1000
+                # ser.write('A100,100,1FF ')
+                # print(str)
 
-            retval, fixed = cv2.threshold(res, 60, 255, cv2.THRESH_BINARY)  # binarize
+                cv2.imshow('Mask', mask)
+                # cv2.imwrite('test_1.jpg',src);
+                cv2.imshow('Image', src)
+                fps = fps + 1
+                stream.truncate(0)
 
-            cnts = cv2.findContours(fixed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-            cnts = cnts[0] if imutils.is_cv2() else cnts[1]
-
-            i = 0
-            for c in cnts:
-                M = cv2.moments(c)
-                cX = int(M["m10"] / (M["m00"] + 1))
-                cY = int(M["m01"] / (M["m00"] + 1))
-                print[cX, cY]
+                cv2.waitKey(1)
