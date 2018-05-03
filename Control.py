@@ -21,8 +21,51 @@ class Unbuffered(object):
         return getattr(self.stream, attr)
 
 
+quq = 0
+
+class FindLight:
+    def __init__(self):
+        self.success_flag = 0 #值为0代表没有成功灭灯，值为1代表已经进入灯比较近的的范围
+        self.count = 0
+
+    def cal(self, cv_result):
+        cx, cy, light_find, cnt = cv_result
+        speed = 0
+        angle = 0
+        if not light_find:
+            speed, angle = self.not_found()
+        else:
+            if cy > quq:
+                speed = quq
+
+            elif cy<=quq:
+                speed = quq
+                self.success_flag = 1
+
+        return speed,angle
+
+
+    def not_found(self):
+        if self.success_flag == 1:
+            speed = -quq
+            angle = 0 # 或 100
+            self.count += 1
+            if self.count>50:
+                self.count = 0
+                self.success_flag = 0
+        else:
+            speed = quq
+            angle = 0 #或100
+
+        return speed, angle
+
+
+
+
+
+
 # sys.stdout = Unbuffered(sys.stdout)
-class Control():
+class Control:
     def __init__(self):
 
         self.current_speed = 0
@@ -85,6 +128,12 @@ class Control():
     def steer_val(self):
         return self.args_dict['servo_finetuning'] + (self.angle - 50) / 100.0 * 5
 
+    def __find_light(self):
+        temp = self.cv_result
+
+
+
+
     def __mode_detect(self):
         if self.gui.state_str.get() == 'manual mode':
             self.target_speed = self.gui.speed_val
@@ -92,6 +141,8 @@ class Control():
             self.set_speed(self.target_speed)
             self.set_anlge(self.angle)
         else:
+            if self.mode_CV:
+                self.__find_light()
             self.gui.speed_val = self.target_speed
             self.gui.angle_val = (self.angle - 50) / 5 * 9
         ##        print(self.target_speed,self.angle)
