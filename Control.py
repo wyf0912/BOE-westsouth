@@ -8,6 +8,9 @@ import CV
 import sys
 import re
 
+gui = GUI.GUI()
+gui.start()
+
 
 class Unbuffered(object):
     def __init__(self, stream):
@@ -27,6 +30,8 @@ class FindLight:
     def __init__(self):
         self.success_flag = 0 #值为0代表没有成功灭灯，值为1代表已经进入灯比较近的的范围
         self.count = 0
+        self.args_dict['backtime']=0
+
 
     def cal(self, cv_result):
         cx, cy, light_find, cnt = cv_result
@@ -59,6 +64,12 @@ class FindLight:
 
         return speed, angle
 
+    def read_argument(self):
+        gui.save_args()
+        print('test')
+        self.args_dict['time'] = eval(gui.argument_dict['kp'])
+
+
 
 
 
@@ -74,9 +85,7 @@ class Control:
         self.__encoder_count = 0
         self.max_val=100
 
-        self.gui = GUI.GUI()
 
-        self.gui.start()
 
         self.args_dict = {}
         self.read_argument()
@@ -107,7 +116,7 @@ class Control:
         self.mode_CV = False
         if self.mode_CV:
             self.cv_result = []
-            self.cv = CV.CV(self.gui)
+            self.cv = CV.CV(gui)
             self.cv.run(self.cv_result)
 
         
@@ -117,12 +126,12 @@ class Control:
         print("test")
 
     def read_argument(self):
-        self.gui.save_args()
+        gui.save_args()
         print('test')
-        self.args_dict['kp'] = eval(self.gui.argument_dict['kp'])
-        self.args_dict['ki'] = eval(self.gui.argument_dict['ki'])
-        self.args_dict['kd'] = eval(self.gui.argument_dict['kd'])
-        self.args_dict['servo_finetuning'] = eval(self.gui.argument_dict['servo_finetuning'])  # defaut 7.5
+        self.args_dict['kp'] = eval(gui.argument_dict['kp'])
+        self.args_dict['ki'] = eval(gui.argument_dict['ki'])
+        self.args_dict['kd'] = eval(gui.argument_dict['kd'])
+        self.args_dict['servo_finetuning'] = eval(gui.argument_dict['servo_finetuning'])  # defaut 7.5
 
     @property
     def steer_val(self):
@@ -135,22 +144,22 @@ class Control:
 
 
     def __mode_detect(self):
-        if self.gui.state_str.get() == 'manual mode':
-            self.target_speed = self.gui.speed_val
-            self.angle = (self.gui.angle_val + 90) / 180.0 * 100
+        if gui.state_str.get() == 'manual mode':
+            self.target_speed = gui.speed_val
+            self.angle = (gui.angle_val + 90) / 180.0 * 100
             self.set_speed(self.target_speed)
             self.set_anlge(self.angle)
         else:
             if self.mode_CV:
                 self.__find_light()
-            self.gui.speed_val = self.target_speed
-            self.gui.angle_val = (self.angle - 50) / 5 * 9
+            gui.speed_val = self.target_speed
+            gui.angle_val = (self.angle - 50) / 5 * 9
         ##        print(self.target_speed,self.angle)
-        if self.gui.args_refresh_flag:
+        if gui.args_refresh_flag:
             self.read_argument()
-            self.gui.args_refresh_flag = 0
+            gui.args_refresh_flag = 0
 		
-        self.gui.updata_speed(self.current_speed/400.0)
+        gui.updata_speed(self.current_speed/400.0)
         self.mode_detect = threading.Timer(self.PID_cycle / 1000.0, self.__mode_detect)
         self.mode_detect.start()
 
@@ -193,7 +202,7 @@ class Control:
                 check_1=result=re.findall('C.*?D',data)
                 check_2=result_check=re.findall('D.*?E',data)
                 if check_1[-1][1:-1] != check_2[-1][1:-1]:
-                    self.gui.updata_speed('trans error')
+                    gui.updata_speed('trans error')
                 elif check_1:
                     self.current_speed=-eval(check_1[-1][1:-1])
             elif result:
@@ -204,7 +213,7 @@ class Control:
         self.print_count += 1
         #if self.print_count % 4 == 0:
         #   print('current speed:',self.current_speed/400.0)
-        #self.gui.save_args()
+        #gui.save_args()
 
         
 		

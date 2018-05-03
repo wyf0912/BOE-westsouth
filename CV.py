@@ -15,11 +15,11 @@ import GUI
 class CV(threading.Thread):
     def __init__(self, gui):
         self.fps = 0
-        self.lower_red = np.array([5, 120, 50])
-        self.upper_red = np.array([20, 255, 255])
+        self.args_dict['lower_red'] = np.array([5, 120, 50])
+        self.args_dict['upper_red'] = np.array([20, 255, 255])
 
-        self.lower_red_1 = np.array([170, 100, 100])
-        self.upper_red_1 = np.array([180, 255, 255])
+        self.args_dict['lower_red_1'] = np.array([170, 100, 100])
+        self.args_dict['upper_red_1'] = np.array([180, 255, 255])
         self.flagLightFinded = 0
         self.cx = 128
         self.cy = 128
@@ -63,7 +63,7 @@ class CV(threading.Thread):
                 # cv2.imwrite('test.jpg',src)
                 hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
                 # grayscaled = cv2.cvtColor(src,cv2.COLOR_BGR2GRAY)
-                mask = cv2.inRange(hsv, self.lower_red, self.upper_red)
+                mask = cv2.inRange(hsv, self.args_dict['lower_red'], self.args_dict['upper_red'])
                 # mask_2 = cv2.inRange(hsv, lower_red_1, upper_red_1)
                 # mask = cv2.bitwise_or(mask_1,mask_2)
                 # blur = cv2.GaussianBlur(imageG,(5,5),0)

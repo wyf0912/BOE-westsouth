@@ -93,10 +93,10 @@ class GUI(threading.Thread):
         self.root.update()
     
     def trans_imshow(self):
-		if self.imshow_flag:
-			self.imshow_flag=False
-		else:
-			self.imshow_flag=True
+        if self.imshow_flag:
+            self.imshow_flag=False
+        else:
+            self.imshow_flag=True
     
     def release_key(self,event):
         #print(event)
@@ -169,8 +169,8 @@ class GUI(threading.Thread):
         self.table.mainloop()
 
     def updata_speed(self,speed):
-		self.current_speed_str.set('Current Speed：'+str(speed))
-	
+        self.current_speed_str.set('Current Speed：'+str(speed))
+
     def save_args(self):
         if self.argument_dict=={}:
             with open('argument.txt', 'r') as file_object:
