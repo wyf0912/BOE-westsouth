@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# import the necessary packages  
+# import the necessary packages
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 import time
@@ -24,17 +24,16 @@ class CV(threading.Thread):
         self.flagLightFinded = 0
         self.cx = 128
         self.cy = 128
-        self.result=[0,0,0,0]
         self.gui = gui
 
     def showfps(self):
-        print("fps:", self.fps)
+        #print("fps:", self.fps)
         self.fps = 0
         self.timer = threading.Timer(1, self.showfps)
         self.timer.start()
-        if self.gui.args_refresh_flag:  # æ„Ÿè§‰æœ‰bug ä¼šè¢«å¦ä¸€ä¸ªç¨‹åºæ¸…æ‰flag
-            self.read_argument()
-            self.gui.args_refresh_flag = 0
+       # if self.gui.args_refresh_flag:  # ¸Ğ¾õÓĞbug »á±»ÁíÒ»¸ö³ÌĞòÇåµôflag
+        #    self.read_argument()
+         #   self.gui.args_refresh_flag = 0
 
     def read_argument(self):
         self.gui.save_args()
@@ -44,26 +43,50 @@ class CV(threading.Thread):
         self.args_dict['upper_red_1 '] = np.array(eval(self.gui.argument_dict['upper_red_1']))
 
     def run(self, result):
-        '''è¾“å…¥ä¸€ä¸ªå‚æ•°resultä¼ é€’ç»“æœï¼ˆcx, cy, flagLightFindedï¼Œcntï¼‰,cnt=(cnt++)%1000ï¼Œç”¨cntæ¥åˆ¤æ–­ç»“æœæ˜¯å¦æœ‰æ›´æ–°'''
+        '''ÊäÈëÒ»¸ö²ÎÊıresult´«µİ½á¹û£¨cx, cy, flagLightFinded£¬cnt£©,cnt=(cnt++)%1000£¬ÓÃcntÀ´ÅĞ¶Ï½á¹ûÊÇ·ñÓĞ¸üĞÂ'''
         with picamera.PiCamera() as camera:
             camera.resolution = (240, 160)
             camera.framerate = 30
             camera.iso = 400
             camera.awb_mode = 'off'
-            camera.awb_gains = 1
-            camera.shutter_speed = 4000
+            camera.awb_gains = 1.0
+            camera.shutter_speed = 2000
             # camera.start_recording('test.h264')
             stream = PiRGBArray(camera, size=(240, 160))
             timer = threading.Timer(1, self.showfps)
             timer.start()
             inf = 666666666
             cnt = 0
+
+            '''*********************************'''
+            awb_gains = True
+            start_val = 0
+            end_val = 0
+            old_start_val = 0
+            old_end_val = 0
+            if awb_gains:
+                current_val=0
+                step = 0.01
+                mode_str='awb_gains'
+            else:
+                current_val = 1000
+                step = 10
+                mode_str='shutter_speed'
+            '''*********************************'''
             for frame in camera.capture_continuous(stream, format="bgr", use_video_port=True):
-                cx=0
-                cy=0
+
+                '''*********************************'''
+                current_val = current_val+ step
+                if awb_gains:
+                    camera.awb_gains = current_val
+                else:
+                    camera.shutter_speed = current_val
+                '''*********************************'''
+                cx, cy, flagLightFinded, cnt=[0,0,0,0]
+
                 src = frame.array
                 # cv2.imshow('Capture',src)
-                # cv2.imwrite('test.jpg',src)
+                # cv2.imwrite('test.jpg',src)WW
                 hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
                 # grayscaled = cv2.cvtColor(src,cv2.COLOR_BGR2GRAY)
                 mask = cv2.inRange(hsv, self.args_dict['lower_red'], self.args_dict['upper_red'])
@@ -99,23 +122,37 @@ class CV(threading.Thread):
 
                     cv2.rectangle(src, (cX - 40, cY - 30), (cX + 40, cY + 30), (0, 255, 0), 4)
                 # str = "A%d,%d,%dFF " % (cx, cy, flagLightFinded);
-                self.result = [cx, cy, flagLightFinded, cnt]
+                result = [cx, cy, flagLightFinded, cnt]
                 cnt = (cnt + 1) % 1000
                 # ser.write('A100,100,1FF ')
                 # print(str)
 
-                if self.gui.imshow_flag:
-					cv2.imshow('Mask', mask)
-					# cv2.imwrite('test_1.jpg',src);
-					cv2.imshow('Image', src)
-
+                cv2.imshow('Mask', mask)
+                # cv2.imwrite('test_1.jpg',src);
+                cv2.imshow('Image', src)
                 self.fps = self.fps + 1
                 stream.truncate(0)
-
                 cv2.waitKey(1)
 
-                
+                '''*********************************'''
+                if flagLightFinded and start_val == old_start_val:
+                    start_val = current_val
+                elif start_val != old_start_val and end_val == old_end_val and not flagLightFinded:
+                    end_val = current_val
+                    print(mode_str,'range from',start_val,'to',end_val)
+                    sure = raw_input('input y to continue\n')
+                    if sure == 'y':
+                        old_end_val = end_val
+                        old_start_val = start_val
+                        current_val = old_start_val - step
+                    else:
+                        return 0
+                '''*********************************'''
+
+
+
+
 if __name__ == '__main__':
-    gui=GUI.GUI()
-    cv=CV(gui)
+    gui = GUI.GUI()
+    cv = CV(gui)
     cv.run([])

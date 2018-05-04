@@ -30,36 +30,40 @@ class FindLight:
     def __init__(self):
         self.success_flag = 0 #值为0代表没有成功灭灯，值为1代表已经进入灯比较近的的范围
         self.count = 0
-        self.args_dict['backtime']=0
+        #gui.argument_dict['backtime']=0
 
 
     def cal(self, cv_result):
         cx, cy, light_find, cnt = cv_result
+        #print('test',cv_result)
         speed = 0
         angle = 0
+
         if not light_find:
             speed, angle = self.not_found()
         else:
-            if cy > 40:
+            if cy < 20:
                 speed = 20
+                angle = 50 - (cx-64)/128.0*100
 
-            elif cy <= 40: # and cy>10
+            elif cy >= 20: # and cy>10
                 speed = 5
                 self.success_flag = 1
-
-        return speed,angle
+                angle = 50 - (cx-64)/128.0*100
+        print 'output',cx,cy
+        return speed,int(angle)
 
 
     def not_found(self):
         if self.success_flag == 1:
-            speed = -20
-            angle = 0 # 或 100
+            speed = -5
+            angle = 50 # 或 100
             self.count += 1
-            if self.count>50:
+            if self.count>140:
                 self.count = 0
                 self.success_flag = 0
         else:
-            speed = 20
+            speed = 5
             angle = 0 #或100
 
         return speed, angle
@@ -77,16 +81,18 @@ class FindLight:
 
 # sys.stdout = Unbuffered(sys.stdout)
 class Control:
-    def __init__(self):
+    def __init__(self, control_logic):
 
         self.current_speed = 0
         self.target_speed = 0
         self.output = 0
         self.__encoder_count = 0
         self.max_val=100
-
-
-
+        self.transed_speed=0
+        self.clear_i_flag = 0
+        
+        self.logic = control_logic
+		
         self.args_dict = {}
         self.read_argument()
 
@@ -113,9 +119,9 @@ class Control:
         self.PID_timer.start()
 
         self.mode_PID = True
-        self.mode_CV = False
+        self.mode_CV = True
         if self.mode_CV:
-            self.cv_result = []
+            self.cv_result = [0,0,0,0]
             self.cv = CV.CV(gui)
             self.cv.run(self.cv_result)
 
@@ -138,9 +144,15 @@ class Control:
         return self.args_dict['servo_finetuning'] + (self.angle - 50) / 100.0 * 5
 
     def __find_light(self):
-        temp = self.cv_result
+        target_speed,target_angle=self.logic.cal(self.cv.result)
+        self.target_speed = target_speed
+        self.target_anlge = target_angle
+        self.set_speed(target_speed)
+        self.set_anlge(target_angle)
+        gui.speed_str.set('速度：' + str(target_speed))
+        gui.angle_str.set('角度：' + str(target_angle))
 
-
+		
 
 
     def __mode_detect(self):
@@ -154,6 +166,7 @@ class Control:
                 self.__find_light()
             gui.speed_val = self.target_speed
             gui.angle_val = (self.angle - 50) / 5 * 9
+
         ##        print(self.target_speed,self.angle)
         if gui.args_refresh_flag:
             self.read_argument()
@@ -221,7 +234,7 @@ class Control:
 
     def set_speed(self, speed):
         assert abs(speed) <= 100
-        self.target_speed = speed*400
+        self.transed_speed = speed*400
         if speed==0:
             if self.__flag_i:
                 self.__flag_i=0
@@ -256,37 +269,47 @@ class Control:
                 self.pi.set_PWM_dutycycle(self.GPIO_motor2, -val)
                                                                 
     def set_anlge(self, angle):
+        if angle>100:
+            angle=100
+        elif angle<0:
+            angle=0
         self.angle = angle
         self.pi.set_PWM_dutycycle(self.GPIO_steer, self.steer_val * 100)
 
     ##        self.steer.ChangeDutyCycle(self.steer_val)
     
     def judge_i(self):
+        
         if self.target_speed>0:
             self.clear_i_flag=1
         elif self.target_speed<0:
             self.clear_i_flag=-1
         elif self.target_speed==0:
-            if self.current_speed*self.target_speed<=0:
+            #print('xxx',current_speed,self_i_flag)
+            if self.current_speed*self.clear_i_flag<=0:
+                print('qingling')
                 self.int_ki_val=0
+                self.int_ki=0
         
     def __cal_output(self):
         self.get_speed()
         self.last_error = self.error
-        self.error = self.target_speed - self.current_speed
+        self.error = self.transed_speed - self.current_speed
+        
         self.int_ki += self.error
         self.int_ki_val = self.args_dict['ki'] * self.int_ki
         if self.int_ki_val > self.max_val*0.4:
             self.int_ki_val = self.max_val*0.4
         if self.int_ki_val < -self.max_val*0.4:
             self.int_ki_val = -self.max_val*0.4
-        self.judge_i()
+        self.judge_i() #
         self.output = self.error * self.args_dict['kp'] + self.int_ki_val + self.args_dict['kd'] * (
                 self.error - self.last_error)
+        #print(self.int_ki)
         self.PID_timer = threading.Timer(self.PID_cycle / 1000.0, self.__cal_output)
         self.PID_timer.start()
 
 
 
 if __name__ == '__main__':
-    mycar = Control()
+    mycar = Control(FindLight())
