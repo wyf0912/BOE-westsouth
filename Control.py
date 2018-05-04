@@ -50,7 +50,7 @@ class FindLight:
                 speed = 5
                 self.success_flag = 1
                 angle = 50 - (cx-64)/128.0*100
-        print 'output',cx,cy
+            gui.auto_state_str.set('x:'+str(cx)+'y:'+str(cy))
         return speed,int(angle)
 
 
@@ -288,8 +288,8 @@ class Control:
             #print('xxx',current_speed,self_i_flag)
             if self.current_speed*self.clear_i_flag<=0:
                 print('qingling')
-                self.int_ki_val=0
-                self.int_ki=0
+                self.int_ki_val = 0
+                self.int_ki = 0
         
     def __cal_output(self):
         self.get_speed()

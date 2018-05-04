@@ -38,6 +38,7 @@ class GUI(threading.Thread):
         self.angle_str = tk.StringVar(self.root)
         self.current_speed_str = tk.StringVar(self.root)
         self.speed_str = tk.StringVar(self.root)
+        self.auto_state_str = tk.StringVar(self.root)
 
         self.speed_str.set('速度：0')
         self.angle_str.set('角度：0')
@@ -46,6 +47,7 @@ class GUI(threading.Thread):
         self.speed = tk.Label(self.root, textvariable=self.speed_str)
         self.angle = tk.Label(self.root, textvariable=self.angle_str)
         self.current_speed = tk.Label(self.root, textvariable=self.current_speed_str)
+        self.auto_state = tk.Label(self.root, textvariable=self.auto_state_str) #show dx dy
 		
         self.angle.grid(row=0, column=1, padx=40, pady=40)
         self.speed.grid(row=0, column=0, padx=40, pady=40)
@@ -53,6 +55,7 @@ class GUI(threading.Thread):
         self.trans.grid(row=1, column=0, padx=40, pady=40)
         self.state.grid(row=2, column=1)
         self.current_speed.grid(row=2,column=0)
+        self.auto_state.grid(row=3)
 
         self.menubar = tk.Menu(self.root)
         self.menubar.add_command(label="Args", command=self.argument_table)
