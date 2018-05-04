@@ -16,6 +16,7 @@ class GUI(threading.Thread):
         self.angle_val = 0
         self.imshow_flag = False
         
+        self.item={}
         self.flag = 0 # stop car
         self.timer_delay = 0.4  #舵机归中时间
         self.timer = threading.Timer(self.timer_delay, self.angle_0)
@@ -62,6 +63,7 @@ class GUI(threading.Thread):
 
         self.root.protocol('WM_DELETE_WINDOW', self.closeWindow)
         self.root.mainloop()
+        
 
 
 
@@ -113,17 +115,17 @@ class GUI(threading.Thread):
 
         if event == 'f':
             #if self.speed_val>0:
-            self.speed_val = 0
             #else:
             #    self.speed_val = 0
             self.state_str.set('manual mode')
+            self.speed_val = 0
             #self.flag=1
 
         if self.state_str.get() == 'manual mode':
             if event == 'w':
-                self.speed_val += 10
+                self.speed_val += 5
             if event == 's':
-                self.speed_val -= 10
+                self.speed_val -= 5
             if event == 'a':
                 self.angle_val += 20
             if event == 'd':
